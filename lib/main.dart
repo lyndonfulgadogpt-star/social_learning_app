@@ -10,14 +10,61 @@ void main() {
   runApp(const HistoryHubApp());
 }
 
-class HistoryHubApp extends StatelessWidget {
+class HistoryHubApp extends StatefulWidget {
   const HistoryHubApp({super.key});
+
+  @override
+  State<HistoryHubApp> createState() => HistoryHubAppState();
+
+  static HistoryHubAppState of(BuildContext context) =>
+      context.findAncestorStateOfType<HistoryHubAppState>()!;
+}
+
+class HistoryHubAppState extends State<HistoryHubApp> {
+  ThemeMode _themeMode = ThemeMode.light;
+  Locale _locale = const Locale('en');
+  bool _parentalControlEnabled = false;
+  final String _fixedParentalPin = '1234';
+
+  void toggleTheme() {
+    setState(() {
+      _themeMode = _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
+    });
+  }
+
+  void setLanguage(String languageCode) {
+    setState(() {
+      _locale = Locale(languageCode);
+    });
+  }
+
+  void setParentalControl(bool enabled) {
+    setState(() {
+      _parentalControlEnabled = enabled;
+    });
+  }
+
+  void revertSettings() {
+    setState(() {
+      _themeMode = ThemeMode.light;
+      _locale = const Locale('en');
+      _parentalControlEnabled = false;
+    });
+  }
+
+  bool verifyPin(String pin) => _fixedParentalPin == pin;
+
+  bool get isDarkMode => _themeMode == ThemeMode.dark;
+  String get currentLanguage => _locale.languageCode;
+  bool get isParentalControlEnabled => _parentalControlEnabled;
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'HistoryHub',
+      themeMode: _themeMode,
       theme: ThemeData(
+        brightness: Brightness.light,
         primarySwatch: Colors.brown,
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
@@ -28,6 +75,23 @@ class HistoryHubApp extends StatelessWidget {
         bottomNavigationBarTheme: const BottomNavigationBarThemeData(
           selectedItemColor: Colors.brown,
           unselectedItemColor: Colors.grey,
+        ),
+      ),
+      darkTheme: ThemeData(
+        brightness: Brightness.dark,
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.brown,
+          brightness: Brightness.dark,
+        ).copyWith(
+          primary: Colors.brown.shade300,
+          secondary: Colors.orangeAccent,
+          surface: Colors.grey.shade900,
+        ),
+        appBarTheme: AppBarTheme(
+          backgroundColor: Colors.grey.shade900,
+          foregroundColor: Colors.brown.shade100,
+          elevation: 0,
         ),
       ),
       home: const SplashScreen(),
@@ -193,8 +257,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isEn = HistoryHubApp.of(context).currentLanguage == 'en';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Scaffold(
-      backgroundColor: Colors.brown.shade50,
+      backgroundColor: isDark ? null : Colors.brown.shade50,
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(32.0),
@@ -203,12 +270,12 @@ class _LoginScreenState extends State<LoginScreen> {
             children: [
               const Icon(Icons.history_edu, size: 80, color: Colors.brown),
               const SizedBox(height: 16),
-              Text('Welcome Back', style: Theme.of(context).textTheme.headlineMedium?.copyWith(color: Colors.brown, fontWeight: FontWeight.bold)),
+              Text(isEn ? 'Welcome Back' : 'Maligayang Pagbabalik', style: Theme.of(context).textTheme.headlineMedium?.copyWith(color: Colors.brown, fontWeight: FontWeight.bold)),
               const SizedBox(height: 32),
               TextField(
                 controller: _userController,
                 decoration: InputDecoration(
-                  labelText: 'Username or Email',
+                  labelText: isEn ? 'Username or Email' : 'Pangalan o Email',
                   prefixIcon: const Icon(Icons.person),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 ),
@@ -218,7 +285,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 controller: _passController,
                 obscureText: true,
                 decoration: InputDecoration(
-                  labelText: 'Password',
+                  labelText: isEn ? 'Password' : 'Password',
                   prefixIcon: const Icon(Icons.lock),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 ),
@@ -232,13 +299,13 @@ class _LoginScreenState extends State<LoginScreen> {
                   minimumSize: const Size(double.infinity, 50),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-                child: const Text('Login'),
+                child: Text(isEn ? 'Login' : 'Mag-log in'),
               ),
               TextButton(
                 onPressed: () {
                   Navigator.push(context, MaterialPageRoute(builder: (context) => const RegisterScreen()));
                 },
-                child: const Text('Don\'t have an account? Register', style: TextStyle(color: Colors.brown)),
+                child: Text(isEn ? 'Don\'t have an account? Register' : 'Wala pang account? Magrehistro', style: const TextStyle(color: Colors.brown)),
               ),
             ],
           ),
@@ -273,6 +340,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isEn = HistoryHubApp.of(context).currentLanguage == 'en';
     return Scaffold(
       appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0, iconTheme: const IconThemeData(color: Colors.brown)),
       body: SingleChildScrollView(
@@ -280,14 +348,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Create Account', style: Theme.of(context).textTheme.headlineMedium?.copyWith(color: Colors.brown, fontWeight: FontWeight.bold)),
+            Text(isEn ? 'Create Account' : 'Gumawa ng Account', style: Theme.of(context).textTheme.headlineMedium?.copyWith(color: Colors.brown, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            const Text('Join the HistoryHub community', style: TextStyle(color: Colors.grey)),
+            Text(isEn ? 'Join the HistoryHub community' : 'Sumali sa komunidad ng HistoryHub', style: const TextStyle(color: Colors.grey)),
             const SizedBox(height: 32),
             TextField(
               controller: _nameController,
               decoration: InputDecoration(
-                labelText: 'Full Name',
+                labelText: isEn ? 'Full Name' : 'Buong Pangalan',
                 prefixIcon: const Icon(Icons.badge),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
@@ -297,7 +365,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               controller: _ageController,
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
-                labelText: 'Age',
+                labelText: isEn ? 'Age' : 'Edad',
                 prefixIcon: const Icon(Icons.cake),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
@@ -306,11 +374,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
             DropdownButtonFormField<String>(
               value: _selectedGender,
               decoration: InputDecoration(
-                labelText: 'Gender',
+                labelText: isEn ? 'Gender' : 'Kasarian',
                 prefixIcon: const Icon(Icons.people),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              items: ['Male', 'Female', 'Other'].map((String value) {
+              items: (isEn ? ['Male', 'Female', 'Other'] : ['Lalaki', 'Babae', 'Iba pa']).map((String value) {
                 return DropdownMenuItem<String>(value: value, child: Text(value));
               }).toList(),
               onChanged: (newValue) {
@@ -322,7 +390,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               controller: _passController,
               obscureText: true,
               decoration: InputDecoration(
-                labelText: 'Password',
+                labelText: isEn ? 'Password' : 'Password',
                 prefixIcon: const Icon(Icons.lock_outline),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
@@ -336,7 +404,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 minimumSize: const Size(double.infinity, 50),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              child: const Text('Register'),
+              child: Text(isEn ? 'Register' : 'Magrehistro'),
             ),
           ],
         ),
@@ -399,11 +467,15 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final appState = HistoryHubApp.of(context);
+    final isEn = appState.currentLanguage == 'en';
+    
     final List<Widget> screens = [
       MapsScreen(onAddToHistory: _addToHistory, onJoinChat: _navigateToChat),
       MessagingScreen(groupName: _activeGroup),
       HistoryScreen(history: _history, platform: platform),
       const AboutHelpScreen(),
+      const SettingsScreen(),
     ];
 
     return Scaffold(
@@ -428,12 +500,25 @@ class _MainScreenState extends State<MainScreen> {
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.explore), label: 'Explore'),
-          BottomNavigationBarItem(icon: Icon(Icons.forum), label: 'Discuss'),
-          BottomNavigationBarItem(icon: Icon(Icons.history_toggle_off), label: 'Log'),
-          BottomNavigationBarItem(icon: Icon(Icons.info_outline), label: 'About'),
+        onTap: (index) {
+          if (index == 1 && appState.isParentalControlEnabled) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(isEn ? 'Discussion restricted by Parental Control' : 'Bawal ang chat dahil sa Kontrol ng Magulang')),
+            );
+            return;
+          }
+          setState(() => _currentIndex = index);
+        },
+        type: BottomNavigationBarType.fixed,
+        items: [
+          BottomNavigationBarItem(icon: const Icon(Icons.explore), label: isEn ? 'Explore' : 'Galugarin'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.forum, color: appState.isParentalControlEnabled ? Colors.grey : null), 
+            label: isEn ? 'Discuss' : 'Usapan'
+          ),
+          BottomNavigationBarItem(icon: const Icon(Icons.history_toggle_off), label: isEn ? 'Log' : 'Kasaysayan'),
+          BottomNavigationBarItem(icon: const Icon(Icons.info_outline), label: isEn ? 'About' : 'Tungkol'),
+          BottomNavigationBarItem(icon: const Icon(Icons.settings), label: isEn ? 'Settings' : 'Ayos'),
         ],
       ),
     );
@@ -568,6 +653,8 @@ class LandmarkDetailsSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appState = HistoryHubApp.of(context);
+    final isEn = appState.currentLanguage == 'en';
     return DraggableScrollableSheet(
       initialChildSize: 0.6,
       maxChildSize: 0.9,
@@ -578,13 +665,13 @@ class LandmarkDetailsSheet extends StatelessWidget {
         children: [
           Text(landmark.name, style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
-          _sectionHeader('Historical Significance'),
+          _sectionHeader(isEn ? 'Historical Significance' : 'Makasaysayang Kahalagahan', context),
           Text(landmark.description),
           const SizedBox(height: 16),
-          _sectionHeader('Cultural Context'),
+          _sectionHeader(isEn ? 'Cultural Context' : 'Kontekstong Kultural', context),
           Text(landmark.culturalContext),
           const SizedBox(height: 24),
-          _sectionHeader('Visual Tour'),
+          _sectionHeader(isEn ? 'Visual Tour' : 'Biswal na Paglilibot', context),
           _YouTubePlayerMimic(videoUrl: landmark.youtubeVideos.isNotEmpty ? landmark.youtubeVideos.first : ""),
           const SizedBox(height: 32),
           ElevatedButton(
@@ -595,20 +682,38 @@ class LandmarkDetailsSheet extends StatelessWidget {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             onPressed: () {
+              if (appState.isParentalControlEnabled) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(isEn 
+                    ? 'Discussion restricted by Parental Control' 
+                    : 'Bawal ang chat dahil sa Kontrol ng Magulang')),
+                );
+                return;
+              }
               Navigator.pop(context);
               onJoinChat(landmark.groupId, landmark.name);
             },
-            child: const Text('Join Group Discussion', style: TextStyle(fontSize: 18)),
+            child: Text(
+              isEn ? 'Join Group Discussion' : 'Sumali sa Talakayan',
+              style: const TextStyle(fontSize: 18)
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _sectionHeader(String title) {
+  Widget _sectionHeader(String title, BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
-      child: Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.brown)),
+      child: Text(
+        title, 
+        style: TextStyle(
+          fontSize: 18, 
+          fontWeight: FontWeight.bold, 
+          color: Theme.of(context).colorScheme.primary
+        )
+      ),
     );
   }
 }
@@ -773,41 +878,50 @@ class _MessagingScreenState extends State<MessagingScreen> {
   void _handleBotResponse(String userText) {
     String response = "";
     final input = userText.toLowerCase();
+    final isEn = HistoryHubApp.of(context).currentLanguage == 'en';
 
     if (input.contains("hi") || input.contains("hello") || input.contains("hey")) {
-      response = "Hello! I'm your HistoryBot guide. Ready to explore the past today?";
+      response = isEn 
+        ? "Hello! I'm your HistoryBot guide. Ready to explore the past today?"
+        : "Halo! Ako ang iyong HistoryBot guide. Handa ka na bang galugarin ang nakaraan ngayong araw?";
     } else if (input.contains("vocab") || input.contains("word") || input.contains("learn")) {
-      final vocabs = [
+      final vocabsEn = [
         "**Archaeology**: The study of human history and prehistory through the excavation of sites.",
         "**Artifact**: An object made by a human being, typically one of cultural or historical interest.",
         "**Chronicle**: A factual written account of important or historical events in the order of their occurrence.",
         "**Heritage**: Valued objects and qualities such as cultural traditions and historic buildings passed down from previous generations.",
       ];
-      response = "Let's expand your vocabulary! Here is a word for you:\n\n${vocabs[DateTime.now().second % vocabs.length]}";
+      final vocabsFil = [
+        "**Arkeolohiya**: Ang pag-aaral ng kasaysayan ng tao at pre-history sa pamamagitan ng paghuhukay ng mga site.",
+        "**Artifact**: Isang bagay na gawa ng tao, karaniwang may kultura o makasaysayang interes.",
+        "**Kronika**: Isang makatotohanang nakasulat na ulat ng mahahalagang kaganapan sa pagkakasunod-sunod nito.",
+        "**Pamana**: Mahahalagang bagay at katangian tulad ng mga tradisyong pangkultura at makasaysayang gusali.",
+      ];
+      response = isEn 
+        ? "Let's expand your vocabulary! Here is a word for you:\n\n${vocabsEn[DateTime.now().second % vocabsEn.length]}"
+        : "Palawakin natin ang iyong bokabularyo! Narito ang isang salita para sa iyo:\n\n${vocabsFil[DateTime.now().second % vocabsFil.length]}";
     } else if (input.contains("tip") || input.contains("technological institute")) {
-      response = "T.I.P. was founded in 1962! It started with only 80 students and has now grown into a major educational institution in the Philippines. Did you know its founders were Engr. Demetrio Quirino, Jr. and Dr. Teresita Quirino?";
-    } else if (input.contains("how are you")) {
-      response = "I'm doing great, just processing centuries of human history. How are you enjoying your visit?";
-    } else if (input.contains("who are you")) {
-      response = "I am HistoryBot, your digital guide to the wonders of HistoryHub!";
+      response = isEn
+        ? "T.I.P. was founded in 1962! It started with only 80 students and has now grown into a major educational institution in the Philippines. Did you know its founders were Engr. Demetrio Quirino, Jr. and Dr. Teresita Quirino?"
+        : "Ang T.I.P. ay itinatag noong 1962! Nagsimula ito sa 80 mag-aaral lamang at ngayon ay naging isang malaking institusyong pang-edukasyon sa Pilipinas. Alam mo ba na ang mga tagapagtatag nito ay sina Engr. Demetrio Quirino, Jr. at Dr. Teresita Quirino?";
     } else if (input.contains("fact")) {
-      final facts = [
+      final factsEn = [
         "The Great Wall of China is not actually visible from the moon with the naked eye!",
         "Cleopatra lived closer to the invention of the iPhone than the building of the Great Pyramid.",
         "The shortest war in history lasted only 38 minutes between Britain and Zanzibar in 1896.",
         "Ancient Romans used to wash their clothes in urine. It was a source of ammonia!",
       ];
-      response = facts[DateTime.now().second % facts.length];
-    } else if (input.contains("help")) {
-      response = "I can tell you about history or just chat! Try asking for a 'fact' or about this location.";
-    } else if (input.contains("bye") || input.contains("goodbye")) {
-      response = "Goodbye! Keep exploring the past and learning something new every day!";
-    } else if (input.contains("thank")) {
-      response = "You're very welcome! Knowledge is power.";
-    } else if (input.contains("cool") || input.contains("wow") || input.contains("interesting")) {
-      response = "History is full of surprises! What else would you like to know?";
+      final factsFil = [
+        "Ang Great Wall of China ay hindi talaga nakikita mula sa buwan gamit ang mata lamang!",
+        "Mas malapit ang buhay ni Cleopatra sa imbensyon ng iPhone kaysa sa pagtatayo ng Great Pyramid.",
+        "Ang pinakamaikling digmaan sa kasaysayan ay tumagal lamang ng 38 minuto sa pagitan ng Britain at Zanzibar noong 1896.",
+        "Ang mga sinaunang Romano ay naglalaba ng kanilang mga damit sa ihi. Ito ay pinagkukunan ng ammonia!",
+      ];
+      response = isEn ? factsEn[DateTime.now().second % factsEn.length] : factsFil[DateTime.now().second % factsFil.length];
     } else {
-      response = "That's fascinating! History is all about perspectives. What specifically interests you about ${widget.groupName}?";
+      response = isEn 
+        ? "That's fascinating! History is all about perspectives. What specifically interests you about ${widget.groupName}?"
+        : "Kamangha-mangha! Ang kasaysayan ay tungkol sa mga pananaw. Ano ang partikular na kinagigiliwan mo tungkol sa ${widget.groupName}?";
     }
 
     Future.delayed(const Duration(seconds: 1), () {
@@ -827,10 +941,13 @@ class _MessagingScreenState extends State<MessagingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isEn = HistoryHubApp.of(context).currentLanguage == 'en';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text('${widget.groupName} Chat'),
-        backgroundColor: Colors.brown.shade50,
+        title: Text('${widget.groupName} ${isEn ? "Chat" : "Usapan"}'),
+        backgroundColor: isDark ? null : Colors.brown.shade50,
         elevation: 0,
       ),
       body: Column(
@@ -848,14 +965,29 @@ class _MessagingScreenState extends State<MessagingScreen> {
                     margin: const EdgeInsets.symmetric(vertical: 4),
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: msg.isMe ? Colors.brown : Colors.grey.shade200,
+                      color: msg.isMe 
+                          ? Colors.brown 
+                          : (isDark ? Colors.grey.shade800 : Colors.grey.shade200),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (!msg.isMe) Text(msg.sender, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.brown)),
-                        Text(msg.text, style: TextStyle(color: msg.isMe ? Colors.white : Colors.black87)),
+                        if (!msg.isMe) 
+                          Text(
+                            msg.sender == 'You' ? (isEn ? 'You' : 'Ikaw') : msg.sender, 
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold, 
+                              fontSize: 12, 
+                              color: isDark ? Colors.brown.shade200 : Colors.brown
+                            )
+                          ),
+                        Text(
+                          msg.text, 
+                          style: TextStyle(
+                            color: msg.isMe || isDark ? Colors.white : Colors.black87
+                          )
+                        ),
                       ],
                     ),
                   ),
@@ -871,7 +1003,7 @@ class _MessagingScreenState extends State<MessagingScreen> {
                   child: TextField(
                     controller: _textController,
                     decoration: InputDecoration(
-                      hintText: 'Discuss with others...',
+                      hintText: isEn ? 'Discuss with others...' : 'Makipag-usap sa iba...',
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(25)),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 20),
                     ),
@@ -897,54 +1029,67 @@ class AboutHelpScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isEn = HistoryHubApp.of(context).currentLanguage == 'en';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('About & Help'),
-        backgroundColor: Colors.brown.shade50,
+        title: Text(isEn ? 'About & Help' : 'Tungkol at Tulong'),
+        backgroundColor: isDark ? null : Colors.brown.shade50,
       ),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
-          _buildSectionHeader('About HistoryHub'),
-          const Text(
-            'HistoryHub is a location-based social learning platform designed to connect people with the rich history and culture of their surroundings. Explore landmarks, join discussions, and discover the past like never before.',
-            style: TextStyle(fontSize: 16, height: 1.5),
+          _buildSectionHeader(isEn ? 'About HistoryHub' : 'Tungkol sa HistoryHub', context),
+          Text(
+            isEn 
+              ? 'HistoryHub is a location-based social learning platform designed to connect people with the rich history and culture of their surroundings. Explore landmarks, join discussions, and discover the past like never before.'
+              : 'Ang HistoryHub ay isang location-based na social learning platform na idinisenyo upang ikonekta ang mga tao sa mayamang kasaysayan at kultura ng kanilang paligid. Galugarin ang mga palatandaan, sumali sa mga talakayan, at tuklasin ang nakaraan nang hindi kailanman nagawa.',
+            style: const TextStyle(fontSize: 16, height: 1.5),
           ),
           const SizedBox(height: 32),
-          _buildSectionHeader('Help & FAQs'),
+          _buildSectionHeader(isEn ? 'Help & FAQs' : 'Tulong at mga FAQ', context),
           _buildExpansionTile(
-            'How do I explore landmarks?',
-            'Simply go to the Explore tab and use the interactive map to find markers. Tap on a marker to see historical details.',
+            isEn ? 'How do I explore landmarks?' : 'Paano ko ginalugad ang mga palatandaan?',
+            isEn 
+              ? 'Simply go to the Explore tab and use the interactive map to find markers. Tap on a marker to see historical details.'
+              : 'Pumunta lamang sa tab na Explore at gamitin ang interactive na mapa upang makahanap ng mga marker. I-tap ang isang marker upang makita ang mga detalye ng kasaysayan.',
           ),
           _buildExpansionTile(
-            'How do I join a discussion?',
-            'When viewing a landmark\'s details, click on the "Join Group Discussion" button to enter the chat room for that specific location.',
+            isEn ? 'How do I join a discussion?' : 'Paano ako sasali sa isang talakayan?',
+            isEn 
+              ? 'When viewing a landmark\'s details, click on the "Join Group Discussion" button to enter the chat room for that specific location.'
+              : 'Kapag tinitingnan ang mga detalye ng isang palatandaan, i-click ang button na "Sumali sa Talakayan" upang makapasok sa chat room para sa partikular na lokasyong iyon.',
           ),
           _buildExpansionTile(
-            'What are Native Facts?',
-            'Native Facts are curated historical tidbits fetched directly from our native Java engine. You can find them in the Log section.',
+            isEn ? 'What are Native Facts?' : 'Ano ang mga Native Fact?',
+            isEn 
+              ? 'Native Facts are curated historical tidbits fetched directly from our native Java engine. You can find them in the Log section.'
+              : 'Ang mga Native Fact ay mga na-curate na makasaysayang impormasyon na kinuha nang direkta mula sa aming native Java engine. Mahahanap mo sila sa seksyong Log.',
           ),
           _buildExpansionTile(
-            'How do I logout?',
-            'You can find the logout button in the top right corner of the main screen\'s app bar.',
+            isEn ? 'How do I logout?' : 'Paano ako mag-logout?',
+            isEn 
+              ? 'You can find the logout button in the top right corner of the main screen\'s app bar.'
+              : 'Makikita mo ang logout button sa kanang sulok sa itaas ng app bar sa main screen.',
           ),
           const SizedBox(height: 32),
-          _buildSectionHeader('Contact Us'),
-          const ListTile(
-            leading: Icon(Icons.email, color: Colors.brown),
-            title: Text('Support Email'),
-            subtitle: Text('support@historyhub.com'),
+          _buildSectionHeader(isEn ? 'Contact Us' : 'Makipag-ugnayan sa Amin', context),
+          ListTile(
+            leading: const Icon(Icons.email, color: Colors.brown),
+            title: Text(isEn ? 'Support Email' : 'Email ng Suporta'),
+            subtitle: const Text('support@historyhub.com'),
           ),
-          const ListTile(
-            leading: Icon(Icons.web, color: Colors.brown),
-            title: Text('Website'),
-            subtitle: Text('www.historyhub.com'),
+          ListTile(
+            leading: const Icon(Icons.web, color: Colors.brown),
+            title: Text(isEn ? 'Website' : 'Websayt'),
+            subtitle: const Text('www.historyhub.com'),
           ),
           const SizedBox(height: 24),
-          const Center(
+          Center(
             child: Text(
-              'Version 1.0.0',
-              style: TextStyle(color: Colors.grey, fontSize: 12),
+              '${isEn ? "Version" : "Bersyon"} 1.0.0',
+              style: const TextStyle(color: Colors.grey, fontSize: 12),
             ),
           ),
         ],
@@ -952,15 +1097,15 @@ class AboutHelpScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSectionHeader(String title) {
+  Widget _buildSectionHeader(String title, BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
       child: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 20,
           fontWeight: FontWeight.bold,
-          color: Colors.brown,
+          color: Theme.of(context).colorScheme.primary,
         ),
       ),
     );
@@ -979,6 +1124,236 @@ class AboutHelpScreen extends StatelessWidget {
   }
 }
 
+// ==================== SETTINGS SCREEN ====================
+class SettingsScreen extends StatefulWidget {
+  const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  void _showSetPinDialog(HistoryHubAppState appState) {
+    final controller = TextEditingController();
+    final isEn = appState.currentLanguage == 'en';
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Text(isEn ? 'Enable Parental Control' : 'I-enable ang Parental Control'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(isEn ? 'Enter the fixed PIN (1234) to enable' : 'Ilagay ang fixed PIN (1234) para ma-enable'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              keyboardType: TextInputType.number,
+              obscureText: true,
+              decoration: InputDecoration(hintText: isEn ? 'Enter PIN' : 'Ilagay ang PIN'),
+              maxLength: 4,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(isEn ? 'Cancel' : 'Kanselahin')),
+          TextButton(
+            onPressed: () {
+              if (appState.verifyPin(controller.text)) {
+                appState.setParentalControl(true);
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(isEn ? 'Parental Control Enabled' : 'Na-enable na ang Parental Control')),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(isEn ? 'Incorrect PIN' : 'Maling PIN')),
+                );
+              }
+            },
+            child: Text(isEn ? 'Confirm' : 'Kumpirmahin'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDisablePinDialog(HistoryHubAppState appState) {
+    final controller = TextEditingController();
+    final isEn = appState.currentLanguage == 'en';
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Text(isEn ? 'Disable Parental Control' : 'I-disable ang Parental Control'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(isEn ? 'Enter PIN (1234) to turn off' : 'Ilagay ang PIN (1234) para i-off'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              keyboardType: TextInputType.number,
+              obscureText: true,
+              decoration: const InputDecoration(hintText: 'PIN'),
+              maxLength: 4,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(isEn ? 'Cancel' : 'Kanselahin')),
+          TextButton(
+            onPressed: () {
+              if (appState.verifyPin(controller.text)) {
+                appState.setParentalControl(false);
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(isEn ? 'Parental Control Disabled' : 'Na-disable na ang Parental Control')),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(isEn ? 'Incorrect PIN' : 'Maling PIN')),
+                );
+              }
+            },
+            child: Text(isEn ? 'Confirm' : 'Kumpirmahin'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showRevertDialog(HistoryHubAppState appState) {
+    final isEn = appState.currentLanguage == 'en';
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(isEn ? 'Revert Settings?' : 'Ibalik ang mga Setting?'),
+        content: Text(isEn 
+          ? 'This will reset theme, language, and parental controls to default.' 
+          : 'Ise-reset nito ang tema, wika, at kontrol ng magulang sa default.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(isEn ? 'Cancel' : 'Kanselahin')),
+          TextButton(
+            onPressed: () {
+              appState.revertSettings();
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(isEn ? 'Settings reverted' : 'Naibalik na ang mga setting')),
+              );
+            },
+            child: Text(isEn ? 'Revert' : 'Ibalik'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final appState = HistoryHubApp.of(context);
+    final isEn = appState.currentLanguage == 'en';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(isEn ? 'Settings' : 'Mga Kasangkapan'),
+        backgroundColor: isDark ? null : Colors.brown.shade50,
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _buildSectionHeader(isEn ? 'Appearance' : 'Anyo', context),
+          SwitchListTile(
+            title: Text(isEn ? 'Dark Mode' : 'Madilim na Tema'),
+            secondary: Icon(appState.isDarkMode ? Icons.dark_mode : Icons.light_mode, color: Colors.brown),
+            value: appState.isDarkMode,
+            activeColor: Colors.brown,
+            onChanged: (val) => appState.toggleTheme(),
+          ),
+          const Divider(),
+          _buildSectionHeader(isEn ? 'Language' : 'Wika', context),
+          RadioListTile<String>(
+            title: const Text('English'),
+            value: 'en',
+            groupValue: appState.currentLanguage,
+            activeColor: Colors.brown,
+            selected: appState.currentLanguage == 'en',
+            onChanged: (val) => appState.setLanguage('en'),
+            secondary: Icon(Icons.language, color: isDark ? Colors.brown.shade200 : Colors.brown),
+          ),
+          RadioListTile<String>(
+            title: const Text('Filipino'),
+            value: 'fil',
+            groupValue: appState.currentLanguage,
+            activeColor: Colors.brown,
+            selected: appState.currentLanguage == 'fil',
+            onChanged: (val) => appState.setLanguage('fil'),
+            secondary: Icon(Icons.translate, color: isDark ? Colors.brown.shade200 : Colors.brown),
+          ),
+          const Divider(),
+          _buildSectionHeader(isEn ? 'Safety' : 'Kaligtasan', context),
+          SwitchListTile(
+            title: Text(isEn ? 'Parental Control' : 'Kontrol ng Magulang'),
+            subtitle: Text(isEn 
+              ? 'Restrict access to community features' 
+              : 'Limitahan ang access sa mga feature ng komunidad'),
+            secondary: Icon(Icons.family_restroom, color: isDark ? Colors.brown.shade200 : Colors.brown),
+            value: appState.isParentalControlEnabled,
+            activeColor: Colors.brown,
+            onChanged: (val) {
+              if (val) {
+                _showSetPinDialog(appState);
+              } else {
+                _showDisablePinDialog(appState);
+              }
+            },
+          ),
+          if (appState.isParentalControlEnabled)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Text(
+                isEn ? 'Status: Active (PIN: 1234)' : 'Status: Aktibo (PIN: 1234)',
+                style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
+              ),
+            ),
+          const Divider(),
+          _buildSectionHeader(isEn ? 'Maintenance' : 'Pagpapanatili', context),
+          ListTile(
+            title: Text(isEn ? 'Revert All Changes' : 'Ibalik Lahat ng Binago'),
+            subtitle: Text(isEn ? 'Reset to factory defaults' : 'I-reset sa factory defaults'),
+            leading: const Icon(Icons.restore, color: Colors.red),
+            onTap: () => _showRevertDialog(appState),
+          ),
+          ListTile(
+            title: Text(isEn ? 'Clear Cache' : 'Linisin ang Cache'),
+            leading: Icon(Icons.delete_sweep, color: isDark ? Colors.brown.shade200 : Colors.brown),
+            onTap: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(isEn ? 'Cache cleared' : 'Nalinis na ang cache')),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title, BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          color: Theme.of(context).colorScheme.primary,
+        ),
+      ),
+    );
+  }
+}
+
 // History section
 class HistoryScreen extends StatelessWidget {
   final List<HistoryItem> history;
@@ -987,15 +1362,17 @@ class HistoryScreen extends StatelessWidget {
   const HistoryScreen({super.key, required this.history, required this.platform});
 
   void _fetchNativeFacts(BuildContext context) async {
+    final appState = HistoryHubApp.of(context);
+    final isEn = appState.currentLanguage == 'en';
     try {
       final String facts = await platform.invokeMethod('getHistoricalFacts');
       if (context.mounted) {
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('Daily Facts (from Java Engine)'),
+            title: Text(isEn ? 'Daily Facts (from Java Engine)' : 'Araw-araw na Katotohanan (mula sa Java)'),
             content: Text(facts),
-            actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cool!'))],
+            actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(isEn ? 'Cool!' : 'Astig!'))],
           ),
         );
       }
@@ -1006,19 +1383,20 @@ class HistoryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isEn = HistoryHubApp.of(context).currentLanguage == 'en';
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Learning Journey'),
+        title: Text(isEn ? 'Learning Journey' : 'Paglalakbay sa Pag-aaral'),
         actions: [
           IconButton(
             icon: const Icon(Icons.lightbulb_outline),
             onPressed: () => _fetchNativeFacts(context),
-            tooltip: 'Get Native Facts',
+            tooltip: isEn ? 'Get Native Facts' : 'Kumuha ng Native Facts',
           ),
         ],
       ),
       body: history.isEmpty
-          ? const Center(child: Text('Your journey begins here. Explore landmarks!'))
+          ? Center(child: Text(isEn ? 'Your journey begins here. Explore landmarks!' : 'Dito magsisimula ang iyong paglalakbay. Galugarin ang mga palatandaan!'))
           : ListView.builder(
               itemCount: history.length,
               itemBuilder: (context, index) {
@@ -1026,7 +1404,7 @@ class HistoryScreen extends StatelessWidget {
                 return ListTile(
                   leading: const Icon(Icons.account_balance, color: Colors.brown),
                   title: Text(item.title),
-                  subtitle: Text('Last studied: ${item.timestamp.hour}:${item.timestamp.minute}'),
+                  subtitle: Text('${isEn ? "Last studied" : "Huling pinag-aralan"}: ${item.timestamp.hour}:${item.timestamp.minute}'),
                   trailing: const Icon(Icons.chevron_right),
                 );
               },
