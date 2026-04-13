@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:lottie/lottie.dart' hide Marker;
+import 'package:youtube_player_flutter/youtube_player_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 void main() {
   runApp(const HistoryHubApp());
@@ -402,6 +403,7 @@ class _MainScreenState extends State<MainScreen> {
       MapsScreen(onAddToHistory: _addToHistory, onJoinChat: _navigateToChat),
       MessagingScreen(groupName: _activeGroup),
       HistoryScreen(history: _history, platform: platform),
+      const AboutHelpScreen(),
     ];
 
     return Scaffold(
@@ -431,6 +433,7 @@ class _MainScreenState extends State<MainScreen> {
           BottomNavigationBarItem(icon: Icon(Icons.explore), label: 'Explore'),
           BottomNavigationBarItem(icon: Icon(Icons.forum), label: 'Discuss'),
           BottomNavigationBarItem(icon: Icon(Icons.history_toggle_off), label: 'Log'),
+          BottomNavigationBarItem(icon: Icon(Icons.info_outline), label: 'About'),
         ],
       ),
     );
@@ -458,7 +461,7 @@ class _MapsScreenState extends State<MapsScreen> {
       description: 'The Technological Institute of the Philippines (T.I.P.) Quezon City campus was established to reach out to more students in the northern part of Metro Manila.',
       culturalContext: 'A leading engineering and technology school in the Philippines, known for its ABET-accredited programs.',
       location: const LatLng(14.6117, 121.0614),
-      youtubeVideos: ['https://youtu.be/tip_qc_video'],
+      youtubeVideos: ['https://youtu.be/pKkjbckl2Rk?si=gq7C7e57DwwduMkp'],
       groupId: 'tip_qc_community',
     ),
     Landmark(
@@ -620,33 +623,24 @@ class _YouTubePlayerMimic extends StatefulWidget {
 }
 
 class _YouTubePlayerMimicState extends State<_YouTubePlayerMimic> {
-  bool _isPlaying = false;
-  double _progress = 0.0;
-  Timer? _timer;
+  late YoutubePlayerController _controller;
 
-  void _togglePlay() {
-    setState(() {
-      _isPlaying = !_isPlaying;
-      if (_isPlaying) {
-        _timer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
-          setState(() {
-            _progress += 0.01;
-            if (_progress >= 1.0) {
-              _progress = 0.0;
-              _isPlaying = false;
-              _timer?.cancel();
-            }
-          });
-        });
-      } else {
-        _timer?.cancel();
-      }
-    });
+  @override
+  void initState() {
+    super.initState();
+    final videoId = YoutubePlayer.convertUrlToId(widget.videoUrl) ?? 'pKkjbckl2Rk';
+    _controller = YoutubePlayerController(
+      initialVideoId: videoId,
+      flags: const YoutubePlayerFlags(
+        autoPlay: false,
+        mute: false,
+      ),
+    );
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _controller.dispose();
     super.dispose();
   }
 
@@ -655,66 +649,42 @@ class _YouTubePlayerMimicState extends State<_YouTubePlayerMimic> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        GestureDetector(
-          onTap: _togglePlay,
-          child: Container(
-            height: 200,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: Colors.black,
-              borderRadius: BorderRadius.circular(12),
-              image: const DecorationImage(
-                image: NetworkImage('https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&q=80&w=800'),
-                fit: BoxFit.cover,
-                opacity: 0.7,
-              ),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: YoutubePlayer(
+            controller: _controller,
+            showVideoProgressIndicator: true,
+            progressIndicatorColor: Colors.red,
+            progressColors: const ProgressBarColors(
+              playedColor: Colors.red,
+              handleColor: Colors.redAccent,
             ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                if (!_isPlaying)
-                  const Icon(Icons.play_arrow, color: Colors.white, size: 80),
-                if (_isPlaying)
-                  const Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CircularProgressIndicator(color: Colors.red, strokeWidth: 3),
-                      SizedBox(height: 12),
-                      Text('Streaming History Doc...', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        InkWell(
+          onTap: () async {
+            final uri = Uri.parse(widget.videoUrl);
+            if (await canLaunchUrl(uri)) {
+              await launchUrl(uri, mode: LaunchMode.externalApplication);
+            }
+          },
+          child: Row(
+            children: [
+              const Icon(Icons.link, size: 16, color: Colors.blue),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  widget.videoUrl,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.blue,
+                    decoration: TextDecoration.underline,
                   ),
-                Positioned(
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  child: Column(
-                    children: [
-                      LinearProgressIndicator(
-                        value: _progress,
-                        backgroundColor: Colors.white24,
-                        valueColor: const AlwaysStoppedAnimation<Color>(Colors.red),
-                        minHeight: 4,
-                      ),
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        color: Colors.black26,
-                        child: Row(
-                          children: [
-                            Icon(_isPlaying ? Icons.pause : Icons.play_arrow, color: Colors.white, size: 16),
-                            const SizedBox(width: 8),
-                            const Text('02:14 / 12:40', style: TextStyle(color: Colors.white, fontSize: 10)),
-                            const Spacer(),
-                            const Icon(Icons.hd, color: Colors.white, size: 16),
-                            const SizedBox(width: 8),
-                            const Icon(Icons.fullscreen, color: Colors.white, size: 16),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
         const Padding(
@@ -729,7 +699,7 @@ class _YouTubePlayerMimicState extends State<_YouTubePlayerMimic> {
   }
 }
 
-// ==================== MESSAGING SCREEN ====================
+// Discussion section
 class MessagingScreen extends StatefulWidget {
   final String groupName;
   const MessagingScreen({super.key, required this.groupName});
@@ -921,6 +891,94 @@ class _MessagingScreenState extends State<MessagingScreen> {
   }
 }
 
+// About and Help screen
+class AboutHelpScreen extends StatelessWidget {
+  const AboutHelpScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('About & Help'),
+        backgroundColor: Colors.brown.shade50,
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(24),
+        children: [
+          _buildSectionHeader('About HistoryHub'),
+          const Text(
+            'HistoryHub is a location-based social learning platform designed to connect people with the rich history and culture of their surroundings. Explore landmarks, join discussions, and discover the past like never before.',
+            style: TextStyle(fontSize: 16, height: 1.5),
+          ),
+          const SizedBox(height: 32),
+          _buildSectionHeader('Help & FAQs'),
+          _buildExpansionTile(
+            'How do I explore landmarks?',
+            'Simply go to the Explore tab and use the interactive map to find markers. Tap on a marker to see historical details.',
+          ),
+          _buildExpansionTile(
+            'How do I join a discussion?',
+            'When viewing a landmark\'s details, click on the "Join Group Discussion" button to enter the chat room for that specific location.',
+          ),
+          _buildExpansionTile(
+            'What are Native Facts?',
+            'Native Facts are curated historical tidbits fetched directly from our native Java engine. You can find them in the Log section.',
+          ),
+          _buildExpansionTile(
+            'How do I logout?',
+            'You can find the logout button in the top right corner of the main screen\'s app bar.',
+          ),
+          const SizedBox(height: 32),
+          _buildSectionHeader('Contact Us'),
+          const ListTile(
+            leading: Icon(Icons.email, color: Colors.brown),
+            title: Text('Support Email'),
+            subtitle: Text('support@historyhub.com'),
+          ),
+          const ListTile(
+            leading: Icon(Icons.web, color: Colors.brown),
+            title: Text('Website'),
+            subtitle: Text('www.historyhub.com'),
+          ),
+          const SizedBox(height: 24),
+          const Center(
+            child: Text(
+              'Version 1.0.0',
+              style: TextStyle(color: Colors.grey, fontSize: 12),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+          color: Colors.brown,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildExpansionTile(String title, String content) {
+    return ExpansionTile(
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          child: Text(content, style: const TextStyle(color: Colors.black87)),
+        ),
+      ],
+    );
+  }
+}
+
 // History section
 class HistoryScreen extends StatelessWidget {
   final List<HistoryItem> history;
@@ -941,8 +999,8 @@ class HistoryScreen extends StatelessWidget {
           ),
         );
       }
-    } on PlatformException catch (e) {
-      debugPrint('Error: ${e.message}');
+    } on PlatformException catch (_) {
+
     }
   }
 

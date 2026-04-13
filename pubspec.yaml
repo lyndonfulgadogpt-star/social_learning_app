@@ -24,6 +24,8 @@ dependencies:
   # UI dependencies
   flutter_rating_bar: ^4.0.1
   lottie: ^2.7.0
+  youtube_player_flutter: ^8.1.2
+  url_launcher: ^6.2.1
 
 dev_dependencies:
   flutter_test:
