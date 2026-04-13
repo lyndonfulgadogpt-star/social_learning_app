@@ -35,7 +35,7 @@ class HistoryHubApp extends StatelessWidget {
   }
 }
 
-// ==================== SPLASH SCREEN ====================
+// Splash screen
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -117,7 +117,7 @@ class _SplashScreenState extends State<SplashScreen>
   }
 }
 
-// ==================== MODELS ====================
+//important details
 class Landmark {
   final String id;
   final String name;
@@ -161,7 +161,7 @@ class HistoryItem {
   });
 }
 
-// ==================== AUTH SCREENS (MIMIC) ====================
+// Log in screen
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -261,7 +261,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String _selectedGender = 'Male';
 
   void _register() {
-    // Mimic registration logic
+    // Registration
     if (_nameController.text.isNotEmpty && _passController.text.isNotEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Registration Successful! Please login.')),
@@ -344,7 +344,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 }
 
-// ==================== MAIN SCREEN ====================
+// Main screen
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
 
@@ -437,7 +437,7 @@ class _MainScreenState extends State<MainScreen> {
   }
 }
 
-// ==================== MAPS SCREEN ====================
+// Map interface
 class MapsScreen extends StatefulWidget {
   final Function(HistoryItem) onAddToHistory;
   final Function(String, String) onJoinChat;
@@ -556,7 +556,7 @@ class _MapsScreenState extends State<MapsScreen> {
   }
 }
 
-// ==================== LANDMARK DETAILS SHEET ====================
+// History section landmark TIP
 class LandmarkDetailsSheet extends StatelessWidget {
   final Landmark landmark;
   final Function(String, String) onJoinChat;
@@ -610,7 +610,7 @@ class LandmarkDetailsSheet extends StatelessWidget {
   }
 }
 
-// ==================== YOUTUBE PLAYER MIMIC ====================
+// Youtube section
 class _YouTubePlayerMimic extends StatefulWidget {
   final String videoUrl;
   const _YouTubePlayerMimic({required this.videoUrl});
@@ -921,7 +921,7 @@ class _MessagingScreenState extends State<MessagingScreen> {
   }
 }
 
-// ==================== HISTORY SCREEN ====================
+// History section
 class HistoryScreen extends StatelessWidget {
   final List<HistoryItem> history;
   final MethodChannel platform;
