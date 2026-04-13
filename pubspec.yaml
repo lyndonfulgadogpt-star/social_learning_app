@@ -1,0 +1,49 @@
+name: historyhub
+description: A location-based social learning app that teaches history and culture.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: ">=3.10.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Core dependencies
+  cupertino_icons: ^1.0.6
+  geolocator: ^10.1.0
+  google_maps_flutter: ^2.5.3
+  flutter_map: ^6.1.0
+  latlong2: ^0.9.1
+  http: ^1.1.0
+  shared_preferences: ^2.2.2
+  permission_handler: ^11.2.0
+
+  # UI dependencies
+  flutter_rating_bar: ^4.0.1
+  lottie: ^2.7.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+
+  # assets:
+  #   - assets/animations/
+  #   - assets/animations/map.json
+
+  # Add your Google Maps API key here
+  # flutter:
+  #   platforms:
+  #     android:
+  #       properties:
+  #         googleMaps:
+  #           apiKey: "YOUR_ANDROID_API_KEY"
+  #     ios:
+  #       properties:
+  #         googleMapsApiKey: "YOUR_IOS_API_KEY"

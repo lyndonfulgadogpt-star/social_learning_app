@@ -1,0 +1,24 @@
+{
+  "landmarks": [
+    {
+      "id": "eiffel_tower",
+      "name": "Eiffel Tower",
+      "latitude": 48.8584,
+      "longitude": 2.2945,
+      "description": "The Eiffel Tower is a wrought-iron lattice tower on the Champ de Mars in Paris, France.",
+      "cultural_context": "It is named after the engineer Gustave Eiffel, whose company designed and built the tower.",
+      "youtube_query": "Eiffel Tower history documentary",
+      "group_chat_id": "paris_history_buffs"
+    },
+    {
+      "id": "statue_of_liberty",
+      "name": "Statue of Liberty",
+      "latitude": 40.6892,
+      "longitude": -74.0445,
+      "description": "The Statue of Liberty is a colossal neoclassical sculpture on Liberty Island in New York Harbor.",
+      "cultural_context": "A gift from the people of France to the people of the United States.",
+      "youtube_query": "Statue of Liberty history documentary",
+      "group_chat_id": "nyc_history_lovers"
+    }
+  ]
+}

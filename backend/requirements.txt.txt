@@ -1,0 +1,5 @@
+Flask
+google-maps-services-python
+google-api-python-client
+python-dotenv
+# Add any other libraries you identify later
