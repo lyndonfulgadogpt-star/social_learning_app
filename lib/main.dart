@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:http/http.dart' as http;
 
 void main() {
   runApp(const HistoryHubApp());
@@ -201,6 +203,21 @@ class Landmark {
     required this.youtubeVideos,
     required this.groupId,
   });
+
+  factory Landmark.fromJson(Map<String, dynamic> json) {
+    return Landmark(
+      id: json['id'] ?? '',
+      name: json['name'] ?? 'Unknown Landmark',
+      description: json['description'] ?? '',
+      culturalContext: json['cultural_context'] ?? '',
+      location: LatLng(
+        (json['latitude'] as num?)?.toDouble() ?? 0.0,
+        (json['longitude'] as num?)?.toDouble() ?? 0.0,
+      ),
+      youtubeVideos: json['youtube_query'] != null ? [json['youtube_query']] : [],
+      groupId: json['group_chat_id'] ?? 'general',
+    );
+  }
 }
 
 class Message {
@@ -426,6 +443,21 @@ class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
   final List<HistoryItem> _history = [];
   String _activeGroup = 'General History';
+  final _clearCacheController = StreamController<void>.broadcast();
+
+  @override
+  void dispose() {
+    _clearCacheController.close();
+    super.dispose();
+  }
+
+  void _clearCache() {
+    setState(() {
+      _history.clear();
+    });
+    _clearCacheController.add(null);
+    _showNativeToast('Cache and History cleared');
+  }
 
   @override
   void initState() {
@@ -472,10 +504,10 @@ class _MainScreenState extends State<MainScreen> {
 
     final List<Widget> screens = [
       MapsScreen(onAddToHistory: _addToHistory, onJoinChat: _navigateToChat),
-      MessagingScreen(groupName: _activeGroup),
+      MessagingScreen(groupName: _activeGroup, clearStream: _clearCacheController.stream),
       HistoryScreen(history: _history, platform: platform),
       const AboutHelpScreen(),
-      const SettingsScreen(),
+      SettingsScreen(onClearCache: _clearCache),
     ];
 
     return Scaffold(
@@ -538,6 +570,8 @@ class MapsScreen extends StatefulWidget {
 
 class _MapsScreenState extends State<MapsScreen> {
   final MapController _mapController = MapController();
+  List<Landmark> _landmarks = [];
+  bool _isLoading = true;
 
   final List<Landmark> _mockLandmarks = [
     Landmark(
@@ -555,19 +589,52 @@ class _MapsScreenState extends State<MapsScreen> {
       description: 'The iconic statue of the University of the Philippines.',
       culturalContext: 'Represents selfless offering of oneself to the country.',
       location: const LatLng(14.6533, 121.0685),
-      youtubeVideos: ['https://youtu.be/upvideo'],
+      youtubeVideos: [
+        'https://www.youtube.com/watch?v=uX9lGidibZo',
+        'https://upd.edu.ph/history2/'
+      ],
       groupId: 'ph_academic_history',
     ),
     Landmark(
       id: 'tip_manila',
       name: 'T.I.P. Manila',
-      description: 'The Technological Institute of the Philippines (T.I.P.) was founded on February 8, 1962.',
-      culturalContext: 'A premier engineering and computing institution.',
+      description: 'The Technological Institute of the Philippines (T.I.P.) was founded on February 8, 1962, by Engr. Demetrio Quirino, Jr. and Dr. Teresita Quirino.',
+      culturalContext: 'A premier engineering and computing institution. Its Manila campus represents the foundation of T.I.P.\'s commitment to quality education.',
       location: const LatLng(14.5947, 120.9881),
-      youtubeVideos: ['https://youtu.be/tip_video'],
+      youtubeVideos: ['https://youtu.be/pKkjbckl2Rk?si=gq7C7e57DwwduMkp'],
       groupId: 'tip_community',
     ),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchLandmarks();
+  }
+
+  Future<void> _fetchLandmarks() async {
+    try {
+      // 10.0.2.2 is the special alias to your host loopback interface (127.0.0.1 on your development machine)
+      final response = await http.get(Uri.parse('http://10.0.2.2:5000/api/landmarks/nearby?lat=14.6117&lon=121.0614&radius=50'))
+          .timeout(const Duration(seconds: 5));
+      
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        setState(() {
+          _landmarks = data.map((item) => Landmark.fromJson(item)).toList();
+          _isLoading = false;
+        });
+      } else {
+        throw Exception('Failed to load landmarks');
+      }
+    } catch (e) {
+      debugPrint('Error fetching landmarks: $e. Falling back to mock data.');
+      setState(() {
+        _landmarks = _mockLandmarks;
+        _isLoading = false;
+      });
+    }
+  }
 
   void _showLandmarkDetails(Landmark landmark) {
     widget.onAddToHistory(HistoryItem(
@@ -591,7 +658,9 @@ class _MapsScreenState extends State<MapsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: FlutterMap(
+      body: _isLoading 
+        ? const Center(child: CircularProgressIndicator(color: Colors.brown))
+        : FlutterMap(
         mapController: _mapController,
         options: const MapOptions(
           initialCenter: LatLng(14.6117, 121.0614),
@@ -603,29 +672,35 @@ class _MapsScreenState extends State<MapsScreen> {
             userAgentPackageName: 'com.historyhub.app',
           ),
           MarkerLayer(
-            markers: _mockLandmarks.map((landmark) {
+            markers: _landmarks.map((landmark) {
+              final isDark = Theme.of(context).brightness == Brightness.dark;
               return Marker(
                 point: landmark.location,
-                width: 80,
+                width: 100,
                 height: 80,
                 child: GestureDetector(
                   onTap: () => _showLandmarkDetails(landmark),
                   child: Column(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: isDark ? Colors.grey.shade900 : Colors.white,
                           borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: isDark ? Colors.brown.shade300 : Colors.brown, width: 1),
                           boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4)],
                         ),
                         child: Text(
                           landmark.name == 'T.I.P. Quezon City' ? 'TIP QC' : landmark.name,
-                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontSize: 10, 
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : Colors.black,
+                          ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      const Icon(Icons.location_on, color: Colors.brown, size: 40),
+                      Icon(Icons.location_on, color: isDark ? Colors.orange.shade300 : Colors.brown, size: 40),
                     ],
                   ),
                 ),
@@ -807,7 +882,8 @@ class _YouTubePlayerMimicState extends State<_YouTubePlayerMimic> {
 // Discussion section
 class MessagingScreen extends StatefulWidget {
   final String groupName;
-  const MessagingScreen({super.key, required this.groupName});
+  final Stream<void>? clearStream;
+  const MessagingScreen({super.key, required this.groupName, this.clearStream});
 
   @override
   State<MessagingScreen> createState() => _MessagingScreenState();
@@ -817,6 +893,7 @@ class _MessagingScreenState extends State<MessagingScreen> {
   late List<Message> _messages;
   final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  StreamSubscription? _clearSubscription;
 
   @override
   void initState() {
@@ -829,6 +906,28 @@ class _MessagingScreenState extends State<MessagingScreen> {
         isMe: false,
       ),
     ];
+    _clearSubscription = widget.clearStream?.listen((_) {
+      if (mounted) {
+        setState(() {
+          _messages = [
+            Message(
+              sender: 'HistoryBot',
+              text: 'Cache cleared. Welcome back to the ${widget.groupName} study session!',
+              timestamp: DateTime.now(),
+              isMe: false,
+            ),
+          ];
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _clearSubscription?.cancel();
+    _textController.dispose();
+    _scrollController.dispose();
+    super.dispose();
   }
 
   @override
@@ -901,23 +1000,47 @@ class _MessagingScreenState extends State<MessagingScreen> {
           ? "Let's expand your vocabulary! Here is a word for you:\n\n${vocabsEn[DateTime.now().second % vocabsEn.length]}"
           : "Palawakin natin ang iyong bokabularyo! Narito ang isang salita para sa iyo:\n\n${vocabsFil[DateTime.now().second % vocabsFil.length]}";
     } else if (input.contains("tip") || input.contains("technological institute")) {
+      if (input.contains("manila")) {
+        response = isEn
+            ? "T.I.P. Manila is the birthplace of the institution, founded in 1962 at the heart of the University Belt. It started as a small school for 80 students and became a pioneer in engineering education."
+            : "Ang T.I.P. Manila ang pinagmulan ng institusyon, itinatag noong 1962 sa gitna ng University Belt. Nagsimula ito bilang isang maliit na paaralan para sa 80 mag-aaral at naging pioneer sa edukasyon sa engineering.";
+      } else if (input.contains("qc") || input.contains("quezon city")) {
+        response = isEn
+            ? "T.I.P. Quezon City was established in 1983 to expand T.I.P.'s reach. It is known for its state-of-the-art facilities and was the first in the Philippines to receive multiple ABET accreditations simultaneously."
+            : "Ang T.I.P. Quezon City ay itinatag noong 1983 upang palawakin ang maabot ng T.I.P. Kilala ito sa mga makabagong pasilidad nito at ang unang sa Pilipinas na nakatanggap ng maraming akreditasyon ng ABET nang sabay-sabay.";
+      } else {
+        response = isEn
+            ? "T.I.P. (Technological Institute of the Philippines) was founded in 1962 by Engr. Demetrio Quirino, Jr. and Dr. Teresita Quirino. It has campuses in Manila and Quezon City, both known for excellence in Engineering and IT!"
+            : "Ang T.I.P. ay itinatag noong 1962 nina Engr. Demetrio Quirino, Jr. at Dr. Teresita Quirino. Mayroon itong mga campus sa Manila at Quezon City, na parehong kilala sa kahusayan sa Engineering at IT!";
+      }
+    } else if (input.contains("up") || input.contains("diliman") || input.contains("oblation")) {
       response = isEn
-          ? "T.I.P. was founded in 1962! It started with only 80 students and has now grown into a major educational institution in the Philippines. Did you know its founders were Engr. Demetrio Quirino, Jr. and Dr. Teresita Quirino?"
-          : "Ang T.I.P. ay itinatag noong 1962! Nagsimula ito sa 80 mag-aaral lamang at ngayon ay naging isang malaking institusyong pang-edukasyon sa Pilipinas. Alam mo ba na ang mga tagapagtatag nito ay sina Engr. Demetrio Quirino, Jr. at Dr. Teresita Quirino?";
+          ? "The UP Diliman campus was established in 1949. The Oblation statue, created by Guillermo Tolentino, symbolizes selfless service to the nation. Did you know the campus area was once part of a large estate called the Tuason Estate?"
+          : "Ang campus ng UP Diliman ay itinatag noong 1949. Ang estatwa ng Oblation, na nilikha ni Guillermo Tolentino, ay sumisimbolo sa walang pag-iimbot na paglilingkod sa bayan. Alam mo ba na ang lugar ng campus ay dating bahagi ng isang malaking lupain na tinatawag na Tuason Estate?";
     } else if (input.contains("fact")) {
-      final factsEn = [
-        "The Great Wall of China is not actually visible from the moon with the naked eye!",
-        "Cleopatra lived closer to the invention of the iPhone than the building of the Great Pyramid.",
-        "The shortest war in history lasted only 38 minutes between Britain and Zanzibar in 1896.",
-        "Ancient Romans used to wash their clothes in urine. It was a source of ammonia!",
-      ];
-      final factsFil = [
-        "Ang Great Wall of China ay hindi talaga nakikita mula sa buwan gamit ang mata lamang!",
-        "Mas malapit ang buhay ni Cleopatra sa imbensyon ng iPhone kaysa sa pagtatayo ng Great Pyramid.",
-        "Ang pinakamaikling digmaan sa kasaysayan ay tumagal lamang ng 38 minuto sa pagitan ng Britain at Zanzibar noong 1896.",
-        "Ang mga sinaunang Romano ay naglalaba ng kanilang mga damit sa ihi. Ito ay pinagkukunan ng ammonia!",
-      ];
-      response = isEn ? factsEn[DateTime.now().second % factsEn.length] : factsFil[DateTime.now().second % factsFil.length];
+      if (input.contains("tip") || input.contains("technological institute")) {
+        response = isEn
+            ? "Fun Fact: T.I.P. Manila was once known as the 'Home of the Engineers' due to its high passing rates since the 60s. Meanwhile, T.I.P. QC is home to the first-ever 'TechnoCoop' in the country!"
+            : "Nakakatuwang Katotohanan: Ang T.I.P. Manila ay dating kilala bilang 'Tahanan ng mga Inhinyero' dahil sa matataas na passing rate nito simula noong dekada 60. Samantala, ang T.I.P. QC ang tahanan ng kauna-unahang 'TechnoCoop' sa bansa!";
+      } else if (input.contains("up") || input.contains("diliman")) {
+        response = isEn
+            ? "Fun Fact: The Sunken Garden in UP Diliman is actually sinking by about 2 inches every year! Also, the Carillon Tower is the only one of its kind in Southeast Asia with 36 bells."
+            : "Nakakatuwang Katotohanan: Ang Sunken Garden sa UP Diliman ay unti-unting lumulubog ng mga 2 pulgada bawat taon! Bukod dito, ang Carillon Tower ay ang tanging uri nito sa Timog-silangang Asya na may 36 na kampana.";
+      } else {
+        final factsEn = [
+          "T.I.P. Manila started with only 80 students in 1962!",
+          "T.I.P. QC's first building was the 'Arlegui' building before moving to Aurora Blvd.",
+          "UP Diliman's campus area is larger than the City of San Juan!",
+          "The UP Oblation was originally painted in a flesh-like color before being cast in bronze.",
+        ];
+        final factsFil = [
+          "Ang T.I.P. Manila ay nagsimula sa 80 mag-aaral lamang noong 1962!",
+          "Ang unang gusali ng T.I.P. QC ay ang 'Arlegui' building bago lumipat sa Aurora Blvd.",
+          "Ang lawak ng campus ng UP Diliman ay mas malaki kaysa sa Lungsod ng San Juan!",
+          "Ang UP Oblation ay orihinal na pininturahan ng kulay-balat bago ito ginawa sa tanso.",
+        ];
+        response = isEn ? factsEn[DateTime.now().second % factsEn.length] : factsFil[DateTime.now().second % factsFil.length];
+      }
     } else {
       response = isEn
           ? "That's fascinating! History is all about perspectives. What specifically interests you about ${widget.groupName}?"
@@ -1126,7 +1249,8 @@ class AboutHelpScreen extends StatelessWidget {
 
 // ==================== SETTINGS SCREEN ====================
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key});
+  final VoidCallback onClearCache;
+  const SettingsScreen({super.key, required this.onClearCache});
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -1329,6 +1453,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: Text(isEn ? 'Clear Cache' : 'Linisin ang Cache'),
             leading: Icon(Icons.delete_sweep, color: isDark ? Colors.brown.shade200 : Colors.brown),
             onTap: () {
+              widget.onClearCache();
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text(isEn ? 'Cache cleared' : 'Nalinis na ang cache')),
               );
